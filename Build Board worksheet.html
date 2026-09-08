@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI for Humans Build Board — Worksheet</title>
+<style>
+  :root{
+    --bg:#FBF6F0;
+    --card:#FFFFFF;
+    --navy:#1C2B3A;
+    --navy-soft:#5B6B7A;
+    --coral:#E8623D;
+    --coral-soft:#FDE8E0;
+    --coral-text:#B84726;
+    --teal:#1F8A7A;
+    --teal-soft:#E3F5F1;
+    --line:#EDE3D8;
+    --shadow: 0 2px 10px rgba(28,43,58,0.06);
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--navy);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    padding-bottom:110px;
+  }
+  header.top{
+    padding:28px 24px 18px;
+    max-width:760px;
+    margin:0 auto;
+  }
+  header.top h1{
+    margin:0 0 2px;
+    font-size:1.5rem;
+    letter-spacing:-0.01em;
+  }
+  header.top p.sub{
+    margin:0 0 18px;
+    color:var(--navy-soft);
+    font-size:0.92rem;
+  }
+  .name-row{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    flex-wrap:wrap;
+  }
+  .name-row label{
+    font-size:0.85rem;
+    color:var(--navy-soft);
+    font-weight:600;
+  }
+  .name-row input{
+    flex:1;
+    min-width:180px;
+    padding:9px 12px;
+    border-radius:9px;
+    border:1px solid var(--line);
+    font-size:0.95rem;
+    background:#fff;
+  }
+  .banner-note{
+    max-width:760px;
+    margin:0 auto 8px;
+    padding:12px 16px;
+    background:var(--teal-soft);
+    color:#0F5C50;
+    border-radius:10px;
+    font-size:0.85rem;
+    line-height:1.5;
+  }
+  main{
+    max-width:760px;
+    margin:0 auto;
+    padding:8px 24px 40px;
+  }
+  .session{
+    display:none;
+  }
+  .session.active{
+    display:block;
+  }
+  .session-head{
+    margin:22px 0 18px;
+  }
+  .session-head .kicker{
+    font-size:0.75rem;
+    font-weight:700;
+    letter-spacing:0.06em;
+    color:var(--coral-text);
+    text-transform:uppercase;
+  }
+  .session-head h2{
+    margin:2px 0 0;
+    font-size:1.35rem;
+  }
+  .card{
+    background:var(--card);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    border:1px solid var(--line);
+    padding:18px 20px;
+    margin-bottom:16px;
+  }
+  .card .meta{
+    font-size:0.68rem;
+    font-weight:700;
+    letter-spacing:0.05em;
+    color:var(--navy-soft);
+    text-transform:uppercase;
+    margin-bottom:6px;
+  }
+  .card h3{
+    margin:0 0 6px;
+    font-size:1.05rem;
+  }
+  .card .desc{
+    margin:0 0 14px;
+    font-size:0.88rem;
+    color:var(--navy-soft);
+    line-height:1.5;
+  }
+  .field{
+    margin-top:12px;
+  }
+  .field:first-child{
+    margin-top:0;
+  }
+  .field label.flabel{
+    display:block;
+    font-size:0.82rem;
+    font-weight:600;
+    color:var(--navy);
+    margin-bottom:6px;
+  }
+  input[type=text], textarea{
+    width:100%;
+    border:1px solid var(--line);
+    border-radius:9px;
+    padding:10px 12px;
+    font-size:0.92rem;
+    font-family:inherit;
+    background:#FFFDFB;
+    color:var(--navy);
+    resize:vertical;
+  }
+  textarea{min-height:64px;}
+  input[type=text]:focus, textarea:focus{
+    outline:2px solid var(--coral);
+    outline-offset:1px;
+  }
+  .scale{
+    display:flex;
+    gap:6px;
+    flex-wrap:wrap;
+  }
+  .scale button{
+    width:34px;height:34px;
+    border-radius:50%;
+    border:1px solid var(--line);
+    background:#fff;
+    color:var(--navy);
+    font-size:0.85rem;
+    cursor:pointer;
+  }
+  .scale button.active{
+    background:var(--coral);
+    border-color:var(--coral);
+    color:#fff;
+    font-weight:700;
+  }
+  .choices{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  .choices button{
+    padding:8px 14px;
+    border-radius:20px;
+    border:1px solid var(--line);
+    background:#fff;
+    color:var(--navy);
+    font-size:0.85rem;
+    cursor:pointer;
+  }
+  .choices button.active{
+    background:var(--navy);
+    border-color:var(--navy);
+    color:#fff;
+  }
+  .list-items{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .list-item{
+    position:relative;
+    border-radius:10px;
+    border:1px solid var(--line);
+    background:#FFFDFB;
+    padding:10px 34px 10px 12px;
+  }
+  .list-item .tag{
+    display:inline-block;
+    font-size:0.62rem;
+    font-weight:700;
+    letter-spacing:0.05em;
+    padding:2px 8px;
+    border-radius:5px;
+    margin-bottom:6px;
+  }
+  .tag.coral{background:var(--coral-soft);color:var(--coral-text);}
+  .tag.teal{background:var(--teal-soft);color:#0F5C50;}
+  .tag.navy{background:#E7EAEE;color:var(--navy);}
+  .list-item textarea{
+    border:none;
+    background:transparent;
+    padding:0;
+    min-height:20px;
+    font-size:0.9rem;
+  }
+  .list-item textarea:focus{outline:none;}
+  .list-item .remove{
+    position:absolute;
+    top:8px;right:8px;
+    border:none;background:none;
+    color:var(--navy-soft);
+    cursor:pointer;
+    font-size:0.95rem;
+    line-height:1;
+    padding:2px;
+  }
+  .add-more{
+    margin-top:10px;
+    background:none;
+    border:1px dashed #D8C9B8;
+    color:var(--coral-text);
+    border-radius:9px;
+    padding:8px 14px;
+    font-size:0.85rem;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .pair-row{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    position:relative;
+    margin-bottom:8px;
+  }
+  .pair-row .remove{
+    position:absolute;
+    top:-6px;right:-6px;
+    border:none;background:var(--card);
+    color:var(--navy-soft);
+    cursor:pointer;
+    font-size:0.85rem;
+    border-radius:50%;
+    width:20px;height:20px;
+  }
+  .banner-field{
+    border-left:4px solid var(--coral);
+    padding-left:12px;
+    margin-top:14px;
+  }
+  .banner-field.navy{border-left-color:var(--navy);}
+  .banner-field.wild{border-left-color:#C9BCA8;}
+  .banner-field .banner-label{
+    display:inline-block;
+    font-size:0.65rem;
+    font-weight:800;
+    letter-spacing:0.06em;
+    color:#fff;
+    background:var(--coral);
+    padding:2px 8px;
+    border-radius:5px;
+    margin-bottom:8px;
+  }
+  .banner-field.navy .banner-label{background:var(--navy);}
+  .banner-field.wild .banner-label{background:#C9BCA8;color:#4A4032;}
+  .prompt-card{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:18px 20px;
+    margin-bottom:16px;
+  }
+  .prompt-box{
+    background:#F6F1E9;
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:14px;
+    font-size:0.82rem;
+    line-height:1.55;
+    color:#3C3327;
+    white-space:pre-wrap;
+    max-height:280px;
+    overflow-y:auto;
+    margin-bottom:10px;
+  }
+  .copy-btn{
+    background:var(--navy);
+    color:#fff;
+    border:none;
+    border-radius:9px;
+    padding:9px 16px;
+    font-size:0.85rem;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .copy-btn.copied{background:var(--teal);}
+  .addon-note{
+    margin-top:14px;
+    padding-top:12px;
+    border-top:1px dashed var(--line);
+    font-size:0.82rem;
+    color:var(--navy-soft);
+  }
+  footer.stepper{
+    position:fixed;
+    bottom:0;left:0;right:0;
+    background:#fff;
+    border-top:1px solid var(--line);
+    display:flex;
+    justify-content:center;
+    gap:4px;
+    padding:10px 12px;
+    box-shadow:0 -2px 10px rgba(28,43,58,0.06);
+    z-index:20;
+    flex-wrap:wrap;
+  }
+  .step-btn{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background:none;
+    border:none;
+    cursor:pointer;
+    padding:6px 10px;
+    border-radius:9px;
+  }
+  .step-btn .num{
+    width:24px;height:24px;
+    border-radius:50%;
+    background:#EDE3D8;
+    color:var(--navy-soft);
+    display:flex;align-items:center;justify-content:center;
+    font-size:0.78rem;
+    font-weight:700;
+  }
+  .step-btn .lbl{
+    font-size:0.78rem;
+    color:var(--navy-soft);
+    font-weight:600;
+    display:none;
+  }
+  .step-btn.active .num{background:var(--coral);color:#fff;}
+  .step-btn.active .lbl{color:var(--navy);}
+  @media(min-width:640px){
+    .step-btn .lbl{display:inline;}
+  }
+  .toolbar{
+    position:fixed;
+    top:12px;right:12px;
+    display:flex;
+    gap:10px;
+    align-items:center;
+    z-index:20;
+  }
+  .save-status{
+    font-size:0.74rem;
+    color:var(--navy-soft);
+    font-weight:600;
+  }
+  .save-status.dirty{color:var(--coral-text);}
+  .save-status.saved{color:var(--teal);}
+  .save-nudge{
+    position:fixed;
+    left:0;right:0;
+    bottom:58px;
+    background:var(--coral-soft);
+    color:var(--coral-text);
+    padding:10px 20px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:14px;
+    flex-wrap:wrap;
+    font-size:0.85rem;
+    font-weight:600;
+    z-index:21;
+    border-top:1px solid #F0C9B8;
+  }
+  .save-nudge .nudge-actions{display:flex;gap:8px;}
+  .save-nudge[hidden]{display:none;}
+  .recap-card{
+    background:var(--teal-soft);
+    border-radius:var(--radius);
+    padding:14px 18px;
+    margin-bottom:16px;
+    font-size:0.86rem;
+  }
+  .recap-title{
+    font-weight:700;
+    color:#0F5C50;
+    margin-bottom:8px;
+    font-size:0.78rem;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+  }
+  .recap-item{margin-bottom:4px;color:#0F5C50;}
+  .recap-label{font-weight:700;}
+  .recap-hint{
+    margin-top:8px;
+    font-size:0.78rem;
+    color:#0F5C50;
+    opacity:0.85;
+  }
+  .tool-btn{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:9px;
+    padding:8px 12px;
+    font-size:0.78rem;
+    font-weight:700;
+    color:var(--navy);
+    cursor:pointer;
+    box-shadow:var(--shadow);
+  }
+  .tool-btn.primary{
+    background:var(--coral);
+    color:#fff;
+    border-color:var(--coral);
+  }
+  .save-toast{
+    position:fixed;
+    top:60px;right:12px;
+    background:var(--navy);
+    color:#fff;
+    padding:8px 14px;
+    border-radius:9px;
+    font-size:0.78rem;
+    opacity:0;
+    transform:translateY(-6px);
+    transition:opacity .25s, transform .25s;
+    z-index:25;
+  }
+  .save-toast.show{opacity:1;transform:translateY(0);}
+  @media(max-width:640px){
+    .toolbar{position:static;justify-content:flex-end;padding:0 24px;margin-bottom:6px;flex-wrap:wrap;}
+    .save-status{width:100%;text-align:right;}
+    body{padding-bottom:130px;}
+    .save-nudge{bottom:64px;text-align:center;}
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <span class="save-status" id="saveStatus">Nothing to save yet</span>
+  <button class="tool-btn" id="loadBtn" type="button">Load worksheet</button>
+  <button class="tool-btn primary" id="saveBtn" type="button">Save my worksheet</button>
+</div>
+<input type="file" id="fileInput" accept="application/json" style="display:none">
+<div class="save-toast" id="toast"></div>
+<div class="save-nudge" id="saveNudge" hidden>
+  <span>You've made changes since your last save — save your worksheet before you go.</span>
+  <div class="nudge-actions">
+    <button type="button" class="tool-btn primary" id="nudgeSave">Save now</button>
+    <button type="button" class="tool-btn" id="nudgeDismiss">Not now</button>
+  </div>
+</div>
+
+<header class="top">
+  <h1>AI for Humans Build Board</h1>
+  <p class="sub">Kickstarter Program Worksheet</p>
+  <div class="name-row">
+    <label for="participantName">Your name:</label>
+    <input type="text" id="participantName" placeholder="e.g. Jordan Lee">
+  </div>
+</header>
+
+<div class="banner-note">
+  Your answers save automatically in this browser as you type. Before you close a session — or if you'll be on a different device next time — click <strong>Save my worksheet</strong> to download a copy you own. Next session, click <strong>Load worksheet</strong> to bring your answers back in.
+</div>
+
+<main id="app"></main>
+
+<footer class="stepper" id="stepper"></footer>
+
+<script>
+const HIVE_PROMPT = `I want to use voice mode to help you understand my work so you can become a better strategic partner to me.
+
+Please interview me conversationally, one question at a time. Your goal is to understand:
+
+- What I do for work
+- Who I serve
+- What outcomes I am responsible for
+- What tasks take the most time or energy
+- Where I get stuck or overwhelmed
+- What kind of support would be most useful from AI
+- How I like to think, work, create, and make decisions
+- What tone, style, or level of detail I prefer
+- What tools, documents, systems, or recurring workflows are part of my work
+- What resources you would need from me to build a reusable "Business Context Hive"
+
+As you interview me, listen for the patterns behind my answers. Ask follow-up questions when something feels important, unclear, or useful.
+
+At the end of the interview, summarize what you learned in a structured format called:
+
+My Business Context Hive
+
+Please organize it into these sections:
+- My Role and Responsibilities
+- My Business or Organization
+- My Audience, Clients, or Stakeholders
+- My Goals and Priorities
+- My Recurring Workflows
+- My Biggest Pain Points
+- How AI Can Help Me Most
+- My Communication Style
+- My Decision-Making Style
+- Tools and Systems I Use
+- Documents or Resources You Should Ask Me For
+- Recommended First AI Use Cases
+- Next Best Steps
+
+Please make the interview feel natural, supportive, and practical. Do not ask me to upload everything at once. Help me discover what context would be useful as we go.
+
+Start by saying hello and asking me to describe, in plain language, what I do for work.`;
+
+const IMPACT_PROMPT = `You and I have just finished [PROGRAM NAME], [N] working sessions on using AI well. I want you to help me see how far I have come, from where I started to where I am now.
+
+Here is how to do this properly. First, look back across our conversations and anything I share with you now. Then ask me a short set of questions, one at a time, no more than six, to fill in what you cannot see: what I was using you for before we started, what I reach for you for now, what clicked, what flopped, and what I am still avoiding. Wait for my answers before you write anything.
+
+Once you have enough, write my review in this shape:
+
+1. The Shift (the headline)
+Place me on a simple line that runs from "I use AI to do tasks for me" on one end to "I think with AI as a partner" on the other. Tell me where I started, where I am now, and what moved me. Be specific about the one behavior that changed most. For example: am I bringing context up front so your best thinking shows up in my first message instead of my twentieth? Am I asking you to push back instead of just agree? Name the real change, not a flattering version of it.
+
+2. Side A: Greatest Hits
+This is the high five. List the actual things I did, built, drafted, untangled, or shipped across these sessions. Use real examples from our work, not generic praise. Short, punchy, specific. This is my greatest hits record, so make me proud of it.
+
+3. What I Am Doing Now That I Was Not Before
+Three to five new habits or moves. Give me the before and the after for each. Keep it honest and grounded in what you actually saw me do.
+
+4. It Takes Two: Where We Could Partner Even More
+This is the coaching, and it is the most valuable part. Name two or three specific places where you and I could collaborate more deeply. For example: context I could give you up front, moments I am still treating you like a search box instead of a thinking partner, verification I could lean on you for, or work I am doing alone that we could do together. Be direct. This is where the next gains are.
+
+5. The Next Two Weeks
+Two or three focused reps. Not a syllabus. Small, doable, specific to me, things I can practice in real work over the next fourteen days.
+
+Voice: talk to me like a sharp colleague who has watched me work for a month. Warm but direct. Plain language. Specific over flattering. No hype, no filler. Tell me the truth about my progress, because that is what makes it worth keeping.`;
+
+const IMPACT_ADDON = `After the review, also give me a clean table of my greatest hits with these columns: What I Worked On, How I Used You, What Changed For Me. I want to keep it as my record.`;
+
+// ---------- session/content definitions ----------
+const SESSIONS = [
+{
+  id:'s1', num:1, label:'Where I start', kicker:'Session 1 · Check-in',
+  blocks:[
+    {type:'card', meta:'S1 · CHECK-IN · SOLO · 3 MIN', title:'My AI Comfort Level', desc:'How comfortable am I with AI today?',
+      fields:[
+        {type:'scale', key:'s1.comfort_start'},
+        {type:'textarea', key:'s1.comfort_start_notes', label:'Notes'}
+      ]},
+    {type:'card', meta:'S1 · CHECK-IN · SOLO · 2 MIN', title:'My AI Tool Today', desc:'Which AI am I actually using right now? Paid tools think and remember far more than free ones.',
+      fields:[
+        {type:'choice', key:'s1.tool_type', options:['Paid','Free','Not sure yet']},
+        {type:'text', key:'s1.tool_which', label:'Which tool:'}
+      ]},
+    {type:'card', meta:'S1 · ACTIVITY · SOLO · 4 MIN', title:'My Biggest Opportunity', desc:'Where do I think AI could make the most difference in my work right now?',
+      fields:[{type:'textarea', key:'s1.opportunity'}]},
+    {type:'card', meta:"S1 · ACTIVITY · CHAT THEN BOARD · 8 MIN", title:"The questions I would ask 'Data'", desc:'What would I want to know if I could talk to my data directly?',
+      fields:[{type:'list', key:'s1.data_questions', tag:'QUESTION', color:'teal', placeholder:"A question I'd love to ask my data...", initial:3}]},
+    {type:'card', meta:'S1 · ACTIVITY · GROUP · 8 MIN', title:'What problems do we solve?', desc:"Before anyone touches a tool, they need to know what they're solving. What are the top problems you and your team are responsible for solving — business problems, not AI problems?",
+      fields:[{type:'list', key:'s1.problems', tag:'PROBLEM', color:'coral', placeholder:"A business problem we're responsible for solving...", initial:3}]},
+    {type:'card', meta:'S1 · ACTIVITY · SOLO · 5 MIN', title:'BONUS: My Never Again List', desc:"Repetitive tasks I'd love to never do again. What would I happily hand off to AI?",
+      fields:[{type:'list', key:'s1.junk_tasks', tag:'TASK', color:'navy', placeholder:'A repetitive task I want off my plate...', initial:3}]},
+    {type:'card', meta:'S1 · ACTIVITY · SOLO · 5 MIN', title:'Hive Starter: my #1 task', desc:'Pick the top item from your Never Again List. What data does your AI need in your Hive to take it on?',
+      fields:[
+        {type:'text', key:'s1.hive_task', label:'My #1 task to hand off:'},
+        {type:'list', key:'s1.hive_data', label:'Data my AI needs in the Hive:', tag:'DATA SOURCE', color:'teal', placeholder:'A document, system, or source my AI would need...', initial:1}
+      ]},
+    {type:'prompt', meta:'S1 · HOMEWORK · SOLO · 15 MIN', title:'My Homework: Build My Business Context Hive',
+      desc:'Paste this prompt into your AI tool of choice in voice mode. Let it interview you, then save the "Business Context Hive" it produces.',
+      promptId:'hive', promptLabel:'SAMPLE PROMPT', text:HIVE_PROMPT}
+  ]
+},
+{
+  id:'s2', num:2, label:'My morning brief', kicker:'Session 2 · My Morning Brief',
+  blocks:[
+    {type:'card', meta:'S2 · ACTIVITY · CHAT THEN BOARD · 10 MIN', title:'My Morning Brief', desc:'My two-way conversation that I have with my AI in the morning.',
+      fields:[
+        {type:'textarea', key:'s2.brief_capture', label:'Capture your morning brief conversation'},
+        {type:'choice', key:'s2.brief_delivery', label:'Where My Brief Shows Up — how do I want my Morning Brief delivered each day?', options:['Teams message','Phone','HTML file on desktop','Email','Other']}
+      ]},
+    {type:'card', meta:'S2 · ACTIVITY · SOLO · 5 MIN', title:'What I Need My Morning Brief To Do For Me', desc:'Activity: define what a great morning brief looks like for you.',
+      fields:[{type:'textarea', key:'s2.brief_needs'}]},
+    {type:'card', meta:'S2 · ACTIVITY · SOLO · 5 MIN', title:'What Broke + What I Learned', desc:'Every win equals a screw-up. What snagged today, and what did it teach me?',
+      fields:[{type:'pairlist', key:'s2.broke_learned', tagA:'WHAT BROKE', tagB:'WHAT I LEARNED', colorA:'coral', colorB:'teal', placeholderA:'The snag I hit...', placeholderB:'What it taught me...', initial:1}]},
+    {type:'card', meta:'S2 · ACTIVITY · PAIR · 8 MIN', title:'Put On Everyone’s Mask (Co-Build)', desc:'My brief is only 40% of the value. What can I trade with a teammate to 10x it?',
+      fields:[
+        {type:'textarea', key:'s2.mask_nugget', label:'A nugget in my brief someone else should have:'},
+        {type:'textarea', key:'s2.mask_peek', label:"Whose brief I want a peek at, and what I'd take from it:"},
+        {type:'textarea', key:'s2.mask_partner', label:"My co-build partner + what we'll trade by next week:"}
+      ]}
+  ]
+},
+{
+  id:'s3', num:3, label:'What I see and choose', kicker:'Session 3 · Opportunity Mapping',
+  blocks:[
+    {type:'recap', title:'Carried forward from Session 1', items:[
+      {key:'s1.opportunity', label:'My Biggest Opportunity'},
+      {key:'s1.hive_task', label:'My #1 task to hand off'}
+    ]},
+    {type:'card', meta:'S3 · CHECK-IN · SOLO · 4 MIN', title:'Morning Brief Check-In', desc:'How much time or effort can you estimate that it’s saving you now?',
+      fields:[
+        {type:'textarea', key:'s3.brief_savings', label:'How much time or effort is your morning brief saving you now?'},
+        {type:'textarea', key:'s3.brief_built_more', label:'Have you built anything else since then?'}
+      ]},
+    {type:'card', meta:'S3 · ACTIVITY · SOLO · 6 MIN', title:'My Perfect Day', desc:'What does ideal look like?',
+      fields:[{type:'list', key:'s3.ideal_states', tag:'IDEAL STATE', color:'teal', placeholder:'A piece of my ideal day...', initial:2}]},
+    {type:'card', meta:'S3 · ACTIVITY · SOLO · 6 MIN', title:'Gaps and Barriers', desc:'What stands in the way?',
+      fields:[{type:'list', key:'s3.barriers', tag:'BARRIER', color:'coral', placeholder:'Something standing in the way...', initial:2}]},
+    {type:'card', meta:'S3 · ACTIVITY · TEAM · 10 MIN', title:'Take a Bigger Swing (Team Co-Build)', desc:'What could we build together that I couldn’t pull off alone? Stretch what’s possible when the company collaborates with AI.',
+      fields:[
+        {type:'textarea', key:'s3.swing_idea', label:'The bigger swing — what we could build together:'},
+        {type:'textarea', key:'s3.swing_team', label:'Teammates I want in on this (and what each brings):'},
+        {type:'textarea', key:'s3.swing_first_move', label:'Our first move together by next week:'}
+      ]},
+    {type:'card', meta:'S3 · ACTIVITY · SOLO · 8 MIN', title:'My Priorities', desc:'What I choose to go after.',
+      fields:[
+        {type:'banner-text', key:'s3.priority1', banner:'PRIORITY #1', style:'coral', label:'What I will build:'},
+        {type:'banner-text', key:'s3.next_up', banner:'NEXT UP', style:'navy', label:'What I will tackle after:'},
+        {type:'banner-text', key:'s3.wildcard', banner:'WILD CARD', style:'wild', label:'Optional:'}
+      ]}
+  ]
+},
+{
+  id:'s4', num:4, label:'How I grew', kicker:'Session 4 · Check-out',
+  blocks:[
+    {type:'recap', title:'What you committed to in Session 3', items:[
+      {key:'s3.priority1', label:'Priority #1'},
+      {key:'s3.next_up', label:'Next Up'},
+      {key:'s3.wildcard', label:'Wild Card'}
+    ]},
+    {type:'card', meta:'S4 · CHECK-IN · SOLO · 6 MIN', title:'Progress Check', desc:'What moved? What surprised me?',
+      fields:[
+        {type:'choice', key:'s4.priority1_status', label:'Priority #1:', options:['Done','In progress','Stuck','Pivoted']},
+        {type:'choice', key:'s4.next_up_status', label:'Next up:', options:['Done','In progress','Stuck','Pivoted']},
+        {type:'choice', key:'s4.wildcard_status', label:'Wild card:', options:['Done','In progress','Stuck','Pivoted']}
+      ]},
+    {type:'card', meta:'S4 · ACTIVITY · SOLO · 5 MIN', title:'My 90-Day Commitments', desc:'',
+      fields:[
+        {type:'textarea', key:'s4.commit_change', label:'What I will change:'},
+        {type:'textarea', key:'s4.commit_show', label:'How I will show it:'},
+        {type:'textarea', key:'s4.commit_promise', label:'What I promise my team:'}
+      ]},
+    {type:'card', meta:'S4 · COMMITMENT · SOLO · 3 MIN', title:'My AI Time', desc:'A weekly block to practice, on the calendar. When will I protect it?',
+      fields:[
+        {type:'text', key:'s4.time_slot', label:'Day + time each week:'},
+        {type:'text', key:'s4.time_first_task', label:"What I'll work on first:"}
+      ]},
+    {type:'card', meta:'S4 · CHECK-OUT · SOLO · 3 MIN', title:'My AI Comfort Level', desc:'How comfortable am I now?',
+      fields:[
+        {type:'scale', key:'s4.comfort_end'},
+        {type:'textarea', key:'s4.comfort_end_gained', label:"What do I have now that I didn't have before? Please describe below:"},
+        {type:'textarea', key:'s4.comfort_end_support', label:'If you could ask for any support or training, what would it look like going forward?'}
+      ]}
+  ]
+},
+{
+  id:'ongoing', num:5, label:'Ongoing review', kicker:'It Takes Two',
+  blocks:[
+    {type:'prompt', meta:'ONGOING · SOLO · 15 MIN', title:'It Takes Two: AI Progress Review',
+      desc:'A reusable prompt to track your progress with AI on an ongoing basis. Swap the bracketed placeholders for your program name and session count, then paste it into your AI tool of choice to get back where you started, where you are now, your greatest hits, and where to go next.',
+      promptId:'impact', promptLabel:'IMPACT REPORT PROMPT', text:IMPACT_PROMPT,
+      addon:'Optional add-on (paste at the end if you want the spreadsheet artifact too):', addonId:'impact-addon', addonText:IMPACT_ADDON}
+  ]
+}
+];
+
+// ---------- rendering ----------
+function esc(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function renderField(f){
+  if(f.type==='text'){
+    return `<div class="field">${f.label?`<label class="flabel">${esc(f.label)}</label>`:''}<input type="text" data-field="${f.key}" data-type="text"></div>`;
+  }
+  if(f.type==='textarea'){
+    return `<div class="field">${f.label?`<label class="flabel">${esc(f.label)}</label>`:''}<textarea data-field="${f.key}" data-type="text"></textarea></div>`;
+  }
+  if(f.type==='scale'){
+    let btns='';
+    for(let i=1;i<=10;i++){ btns += `<button type="button" data-value="${i}">${i}</button>`; }
+    return `<div class="field">${f.label?`<label class="flabel">${esc(f.label)}</label>`:''}<div class="scale" data-field="${f.key}" data-type="scale">${btns}</div></div>`;
+  }
+  if(f.type==='choice'){
+    let btns = f.options.map(o=>`<button type="button" data-value="${esc(o)}">${esc(o)}</button>`).join('');
+    return `<div class="field">${f.label?`<label class="flabel">${esc(f.label)}</label>`:''}<div class="choices" data-field="${f.key}" data-type="choice">${btns}</div></div>`;
+  }
+  if(f.type==='list'){
+    return `<div class="field">${f.label?`<label class="flabel">${esc(f.label)}</label>`:''}
+      <div class="list-items" data-field="${f.key}" data-type="list" data-tag="${esc(f.tag)}" data-color="${f.color}" data-placeholder="${esc(f.placeholder)}" data-initial="${f.initial}"></div>
+      <button type="button" class="add-more" data-add-list="${f.key}">+ Add more</button>
+    </div>`;
+  }
+  if(f.type==='pairlist'){
+    return `<div class="field">${f.label?`<label class="flabel">${esc(f.label)}</label>`:''}
+      <div class="pair-items" data-field="${f.key}" data-type="pairlist"
+        data-taga="${esc(f.tagA)}" data-tagb="${esc(f.tagB)}" data-colora="${f.colorA}" data-colorb="${f.colorB}"
+        data-placeholdera="${esc(f.placeholderA)}" data-placeholderb="${esc(f.placeholderB)}" data-initial="${f.initial}"></div>
+      <button type="button" class="add-more" data-add-pair="${f.key}">+ Add more</button>
+    </div>`;
+  }
+  if(f.type==='banner-text'){
+    return `<div class="banner-field ${f.style}">
+      <span class="banner-label">${esc(f.banner)}</span>
+      <div class="field">${f.label?`<label class="flabel">${esc(f.label)}</label>`:''}<input type="text" data-field="${f.key}" data-type="text"></div>
+    </div>`;
+  }
+  return '';
+}
+
+function renderBlock(b){
+  if(b.type==='recap'){
+    return `<div class="recap-card">
+      <div class="recap-title">${esc(b.title)}</div>
+      <div class="recap-items">
+        ${b.items.map(it=>`<div class="recap-item"><span class="recap-label">${esc(it.label)}:</span> <span class="recap-value" data-recap="${it.key}">—</span></div>`).join('')}
+      </div>
+      <div class="recap-hint">If this looks empty, click <strong>Load worksheet</strong> above and choose the file you saved last session.</div>
+    </div>`;
+  }
+  if(b.type==='card'){
+    return `<div class="card">
+      <div class="meta">${esc(b.meta)}</div>
+      <h3>${esc(b.title)}</h3>
+      ${b.desc?`<p class="desc">${esc(b.desc)}</p>`:''}
+      ${b.fields.map(renderField).join('')}
+    </div>`;
+  }
+  if(b.type==='prompt'){
+    return `<div class="prompt-card">
+      <div class="meta">${esc(b.meta)}</div>
+      <h3>${esc(b.title)}</h3>
+      <p class="desc">${esc(b.desc)}</p>
+      <div class="flabel" style="margin-bottom:8px;">${esc(b.promptLabel)}</div>
+      <div class="prompt-box">${esc(b.text)}</div>
+      <button type="button" class="copy-btn" data-copy="${b.promptId}">Copy prompt</button>
+      <textarea data-copy-source="${b.promptId}" style="display:none">${esc(b.text)}</textarea>
+      ${b.addon?`<div class="addon-note">
+        <div style="margin-bottom:8px;">${esc(b.addon)}</div>
+        <div class="prompt-box" style="max-height:120px;">${esc(b.addonText)}</div>
+        <button type="button" class="copy-btn" data-copy="${b.addonId}">Copy add-on line</button>
+        <textarea data-copy-source="${b.addonId}" style="display:none">${esc(b.addonText)}</textarea>
+      </div>`:''}
+    </div>`;
+  }
+  return '';
+}
+
+function renderSession(s){
+  return `<section class="session" id="sec-${s.id}">
+    <div class="session-head">
+      <div class="kicker">${esc(s.kicker)}</div>
+      <h2>${esc(s.label)}</h2>
+    </div>
+    ${s.blocks.map(renderBlock).join('')}
+  </section>`;
+}
+
+function init(){
+  const app = document.getElementById('app');
+  app.innerHTML = SESSIONS.map(renderSession).join('');
+
+  const stepper = document.getElementById('stepper');
+  stepper.innerHTML = SESSIONS.map(s=>`
+    <button type="button" class="step-btn" data-step="${s.id}">
+      <span class="num">${s.num}</span><span class="lbl">${esc(s.label)}</span>
+    </button>`).join('');
+
+  // populate initial list/pairlist rows
+  document.querySelectorAll('.list-items').forEach(el=>{
+    const n = parseInt(el.dataset.initial||'1',10);
+    for(let i=0;i<n;i++) addListItem(el);
+  });
+  document.querySelectorAll('.pair-items').forEach(el=>{
+    const n = parseInt(el.dataset.initial||'1',10);
+    for(let i=0;i<n;i++) addPairItem(el);
+  });
+
+  goToStep(SESSIONS[0].id);
+  loadFromLocal();
+  attachEvents();
+  updateRecaps();
+}
+
+let currentStep = null;
+let dirty = false;
+
+function addListItem(container, value){
+  const div = document.createElement('div');
+  div.className='list-item';
+  div.innerHTML = `<span class="tag ${container.dataset.color}">${esc(container.dataset.tag)}</span>
+    <button type="button" class="remove" title="Remove">✕</button>
+    <textarea data-role="item" placeholder="${esc(container.dataset.placeholder)}" rows="1"></textarea>`;
+  container.appendChild(div);
+  const ta = div.querySelector('textarea');
+  if(value!=null) ta.value = value;
+  autoGrow(ta);
+}
+
+function addPairItem(container, a, b){
+  const div = document.createElement('div');
+  div.className='pair-row';
+  div.innerHTML = `<button type="button" class="remove" title="Remove">✕</button>
+    <div class="list-item"><span class="tag ${container.dataset.colora}">${esc(container.dataset.taga)}</span>
+      <textarea data-role="a" placeholder="${esc(container.dataset.placeholdera)}" rows="1"></textarea></div>
+    <div class="list-item"><span class="tag ${container.dataset.colorb}">${esc(container.dataset.tagb)}</span>
+      <textarea data-role="b" placeholder="${esc(container.dataset.placeholderb)}" rows="1"></textarea></div>`;
+  container.appendChild(div);
+  const tas = div.querySelectorAll('textarea');
+  if(a!=null) tas[0].value=a;
+  if(b!=null) tas[1].value=b;
+  tas.forEach(autoGrow);
+}
+
+function autoGrow(ta){
+  const grow = ()=>{ ta.style.height='auto'; ta.style.height=(ta.scrollHeight)+'px'; };
+  ta.addEventListener('input', grow);
+  grow();
+}
+
+function goToStep(id, fromUserClick){
+  if(fromUserClick && dirty && currentStep && currentStep!==id){
+    showNudge();
+  }
+  document.querySelectorAll('.session').forEach(s=>s.classList.toggle('active', s.id==='sec-'+id));
+  document.querySelectorAll('.step-btn').forEach(b=>b.classList.toggle('active', b.dataset.step===id));
+  window.scrollTo({top:0, behavior:'instant'});
+  try{ localStorage.setItem('bb_last_step', id); }catch(e){}
+  currentStep = id;
+  updateRecaps();
+}
+
+function updateRecaps(){
+  document.querySelectorAll('[data-recap]').forEach(el=>{
+    const source = document.querySelector(`[data-field="${CSS.escape(el.dataset.recap)}"]`);
+    const val = source ? source.value : '';
+    el.textContent = val && val.trim() ? val : '—';
+  });
+  document.querySelectorAll('.recap-card').forEach(card=>{
+    const hasAny = Array.from(card.querySelectorAll('.recap-value')).some(v=>v.textContent!=='—');
+    const hint = card.querySelector('.recap-hint');
+    if(hint) hint.style.display = hasAny ? 'none' : 'block';
+  });
+}
+
+function showNudge(){
+  document.getElementById('saveNudge').hidden = false;
+}
+function hideNudge(){
+  document.getElementById('saveNudge').hidden = true;
+}
+
+function setDirty(isDirty){
+  dirty = isDirty;
+  const status = document.getElementById('saveStatus');
+  if(dirty){
+    status.textContent = 'Unsaved changes';
+    status.className = 'save-status dirty';
+  } else {
+    status.textContent = 'Saved to your downloads';
+    status.className = 'save-status saved';
+  }
+}
+
+let saveTimer=null;
+function attachEvents(){
+  window.addEventListener('beforeunload', e=>{
+    if(dirty){ e.preventDefault(); e.returnValue=''; }
+  });
+
+  document.getElementById('nudgeSave').addEventListener('click', ()=>{
+    saveWorksheetFile();
+    hideNudge();
+  });
+  document.getElementById('nudgeDismiss').addEventListener('click', hideNudge);
+
+  const app = document.getElementById('app');
+
+  app.addEventListener('click', e=>{
+    const scaleBtn = e.target.closest('.scale button');
+    if(scaleBtn){
+      const group = scaleBtn.closest('.scale');
+      group.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+      scaleBtn.classList.add('active');
+      queueSave();
+      return;
+    }
+    const choiceBtn = e.target.closest('.choices button');
+    if(choiceBtn){
+      const group = choiceBtn.closest('.choices');
+      const already = choiceBtn.classList.contains('active');
+      group.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+      if(!already) choiceBtn.classList.add('active');
+      queueSave();
+      return;
+    }
+    const removeBtn = e.target.closest('.list-item .remove');
+    if(removeBtn){
+      removeBtn.closest('.list-item').remove();
+      queueSave();
+      return;
+    }
+    const removePair = e.target.closest('.pair-row .remove');
+    if(removePair){
+      removePair.closest('.pair-row').remove();
+      queueSave();
+      return;
+    }
+    const addList = e.target.closest('[data-add-list]');
+    if(addList){
+      const container = app.querySelector(`.list-items[data-field="${addList.dataset.addList}"]`);
+      addListItem(container);
+      queueSave();
+      return;
+    }
+    const addPair = e.target.closest('[data-add-pair]');
+    if(addPair){
+      const container = app.querySelector(`.pair-items[data-field="${addPair.dataset.addPair}"]`);
+      addPairItem(container);
+      queueSave();
+      return;
+    }
+    const copyBtn = e.target.closest('[data-copy]');
+    if(copyBtn){
+      const src = app.querySelector(`[data-copy-source="${copyBtn.dataset.copy}"]`);
+      copyText(src.value, copyBtn);
+      return;
+    }
+  });
+
+  app.addEventListener('input', e=>{
+    if(e.target.matches('input[type=text], textarea')) queueSave();
+  });
+
+  document.getElementById('participantName').addEventListener('input', queueSave);
+
+  document.getElementById('stepper').addEventListener('click', e=>{
+    const btn = e.target.closest('.step-btn');
+    if(btn) goToStep(btn.dataset.step, true);
+  });
+
+  document.getElementById('saveBtn').addEventListener('click', saveWorksheetFile);
+  document.getElementById('loadBtn').addEventListener('click', ()=>document.getElementById('fileInput').click());
+  document.getElementById('fileInput').addEventListener('change', handleFileLoad);
+}
+
+function copyText(text, btn){
+  const done = ()=>{
+    const original = btn.textContent;
+    btn.textContent='Copied!';
+    btn.classList.add('copied');
+    setTimeout(()=>{ btn.textContent=original; btn.classList.remove('copied'); }, 1500);
+  };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done).catch(()=>fallbackCopy(text, done));
+  } else {
+    fallbackCopy(text, done);
+  }
+}
+function fallbackCopy(text, done){
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position='fixed';
+  ta.style.opacity='0';
+  document.body.appendChild(ta);
+  ta.select();
+  try{ document.execCommand('copy'); }catch(e){}
+  document.body.removeChild(ta);
+  done();
+}
+
+function queueSave(){
+  setDirty(true);
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(()=>{
+    saveToLocal();
+    updateRecaps();
+  }, 400);
+}
+
+function collectState(){
+  const state = { name: document.getElementById('participantName').value, fields:{} };
+  document.querySelectorAll('[data-field]').forEach(el=>{
+    const key = el.dataset.field;
+    const type = el.dataset.type;
+    if(type==='text'){
+      state.fields[key] = el.value;
+    } else if(type==='scale'){
+      const active = el.querySelector('button.active');
+      state.fields[key] = active ? parseInt(active.dataset.value,10) : null;
+    } else if(type==='choice'){
+      const active = el.querySelector('button.active');
+      state.fields[key] = active ? active.dataset.value : null;
+    } else if(type==='list'){
+      state.fields[key] = Array.from(el.querySelectorAll('textarea[data-role="item"]')).map(t=>t.value);
+    } else if(type==='pairlist'){
+      state.fields[key] = Array.from(el.querySelectorAll('.pair-row')).map(row=>{
+        const tas = row.querySelectorAll('textarea');
+        return [tas[0].value, tas[1].value];
+      });
+    }
+  });
+  return state;
+}
+
+function applyState(state){
+  if(!state) return;
+  if(state.name) document.getElementById('participantName').value = state.name;
+  const fields = state.fields || {};
+  Object.keys(fields).forEach(key=>{
+    const el = document.querySelector(`[data-field="${CSS.escape(key)}"]`);
+    if(!el) return;
+    const type = el.dataset.type;
+    const val = fields[key];
+    if(type==='text'){
+      el.value = val || '';
+    } else if(type==='scale'){
+      el.querySelectorAll('button').forEach(b=>b.classList.toggle('active', parseInt(b.dataset.value,10)===val));
+    } else if(type==='choice'){
+      el.querySelectorAll('button').forEach(b=>b.classList.toggle('active', b.dataset.value===val));
+    } else if(type==='list'){
+      el.innerHTML='';
+      (val && val.length ? val : ['']).forEach(v=>addListItem(el, v));
+    } else if(type==='pairlist'){
+      el.innerHTML='';
+      (val && val.length ? val : [['','']]).forEach(pair=>addPairItem(el, pair[0], pair[1]));
+    }
+  });
+}
+
+function saveToLocal(){
+  try{
+    localStorage.setItem('bb_state', JSON.stringify(collectState()));
+  }catch(e){ /* storage unavailable, no-op */ }
+}
+
+function loadFromLocal(){
+  try{
+    const raw = localStorage.getItem('bb_state');
+    if(raw) applyState(JSON.parse(raw));
+    const lastStep = localStorage.getItem('bb_last_step');
+    if(lastStep) goToStep(lastStep);
+  }catch(e){ /* no-op */ }
+}
+
+function saveWorksheetFile(){
+  const state = collectState();
+  state.savedAt = new Date().toISOString();
+  const json = JSON.stringify(state, null, 2);
+  const blob = new Blob([json], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const namePart = (state.name || 'my').trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') || 'my';
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `ai-kickstarter-worksheet-${namePart}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
+  showToast('Worksheet saved to your downloads.');
+  setDirty(false);
+  hideNudge();
+}
+
+function handleFileLoad(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = evt=>{
+    try{
+      const state = JSON.parse(evt.target.result);
+      applyState(state);
+      saveToLocal();
+      updateRecaps();
+      setDirty(false);
+      hideNudge();
+      showToast('Worksheet loaded.');
+    }catch(err){
+      showToast('Could not read that file.');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value='';
+}
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+init();
+</script>
+</body>
+</html>
