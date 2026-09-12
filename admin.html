@@ -89,6 +89,10 @@
   [hidden]{display:none!important;}
   .top-actions{display:flex;justify-content:space-between;align-items:center;max-width:960px;margin:0 auto;padding:0 24px;}
   .top-actions .btn{margin-top:0;}
+  .stat-row{display:flex;gap:14px;flex-wrap:wrap;}
+  .stat{flex:1 1 130px;background:var(--bg);border:1px solid var(--line);border-radius:11px;padding:14px 16px;}
+  .stat-num{font-size:1.6rem;font-weight:700;color:var(--navy);line-height:1.1;}
+  .stat-label{font-size:0.74rem;color:var(--navy-soft);margin-top:4px;}
 </style>
 </head>
 <body>
@@ -129,6 +133,17 @@
       <input type="password" id="newPassword" autocomplete="new-password">
       <button class="btn" id="setPasswordBtn" type="button">Set password</button>
       <div class="msg" id="passwordMsg" hidden></div>
+    </div>
+
+    <div class="card">
+      <h2>Overview</h2>
+      <p class="desc">Snapshot across every cohort, updated each time this page loads.</p>
+      <div class="stat-row">
+        <div class="stat"><div class="stat-num" id="statCohorts">–</div><div class="stat-label">Active cohorts</div></div>
+        <div class="stat"><div class="stat-num" id="statParticipants">–</div><div class="stat-label">Participants</div></div>
+        <div class="stat"><div class="stat-num" id="statResponses">–</div><div class="stat-label">Responses saved</div></div>
+        <div class="stat"><div class="stat-num" id="statLastActivity">–</div><div class="stat-label">Last activity</div></div>
+      </div>
     </div>
 
     <div class="card">
@@ -174,7 +189,7 @@
       <p class="desc">Click a row to edit it. Export pulls every participant's latest saved worksheet for that cohort.</p>
       <table>
         <thead>
-          <tr><th>Cohort</th><th>Tool</th><th>Status</th><th>Link</th><th>Data</th></tr>
+          <tr><th>Cohort</th><th>Tool</th><th>Status</th><th>Participants</th><th>Last Activity</th><th>Link</th><th>Data</th></tr>
         </thead>
         <tbody id="cohortRows"></tbody>
       </table>
@@ -297,18 +312,77 @@ document.getElementById('saveCohortBtn').addEventListener('click', async ()=>{
   loadCohorts();
 });
 
+async function loadStats(){
+  const [{ data: participants, error: pErr }, { data: responses, error: rErr }] = await Promise.all([
+    sb.from('participants').select('cohort_id, last_seen_at'),
+    sb.from('responses').select('cohort_id, updated_at')
+  ]);
+  const byCohort = {};
+  const touch = (key, when)=>{
+    if(!byCohort[key]) byCohort[key] = { participants:0, responses:0, lastActivity:null };
+    if(when && (!byCohort[key].lastActivity || when > byCohort[key].lastActivity)) byCohort[key].lastActivity = when;
+    return byCohort[key];
+  };
+  let overallLast = null;
+  if(!pErr && participants){
+    participants.forEach(p=>{
+      touch(p.cohort_id, p.last_seen_at).participants++;
+      if(p.last_seen_at && (!overallLast || p.last_seen_at > overallLast)) overallLast = p.last_seen_at;
+    });
+  }
+  if(!rErr && responses){
+    responses.forEach(r=>{
+      touch(r.cohort_id, r.updated_at).responses++;
+      if(r.updated_at && (!overallLast || r.updated_at > overallLast)) overallLast = r.updated_at;
+    });
+  }
+  return {
+    byCohort,
+    totalParticipants: participants ? participants.length : 0,
+    totalResponses: responses ? responses.length : 0,
+    overallLast,
+    error: pErr || rErr || null
+  };
+}
+
+function formatRelative(iso){
+  if(!iso) return '—';
+  const d = new Date(iso);
+  const mins = Math.round((Date.now() - d.getTime())/60000);
+  if(mins < 1) return 'just now';
+  if(mins < 60) return mins + 'm ago';
+  const hours = Math.round(mins/60);
+  if(hours < 24) return hours + 'h ago';
+  const days = Math.round(hours/24);
+  if(days < 30) return days + 'd ago';
+  return d.toLocaleDateString();
+}
+
+function renderOverview(cohorts, stats){
+  document.getElementById('statCohorts').textContent = cohorts.filter(c=>c.active).length + ' / ' + cohorts.length;
+  document.getElementById('statParticipants').textContent = stats.totalParticipants;
+  document.getElementById('statResponses').textContent = stats.totalResponses;
+  document.getElementById('statLastActivity').textContent = formatRelative(stats.overallLast);
+}
+
 async function loadCohorts(){
   const tbody = document.getElementById('cohortRows');
   const listMsg = document.getElementById('listMsg');
-  tbody.innerHTML = '<tr><td colspan="5">Loading…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="7">Loading…</td></tr>';
   const { data: cohorts, error } = await sb.from('cohorts').select('*').order('created_at', {ascending:false});
   if(error){ setMsg(listMsg, error.message, false); tbody.innerHTML=''; return; }
   listMsg.hidden = true;
-  if(!cohorts.length){ tbody.innerHTML = '<tr><td colspan="5">No cohorts yet — add one above.</td></tr>'; return; }
+
+  const stats = await loadStats();
+  renderOverview(cohorts, stats);
+  if(stats.error){ setMsg(listMsg, 'Overview stats may be incomplete: ' + stats.error.message, false); }
+
+  if(!cohorts.length){ tbody.innerHTML = '<tr><td colspan="7">No cohorts yet — add one above.</td></tr>'; return; }
 
   const boardBase = window.location.origin + '/';
   tbody.innerHTML = '';
   for(const c of cohorts){
+    const s = stats.byCohort[c.id] || { participants:0, responses:0, lastActivity:null };
     const tr = document.createElement('tr');
     if(!c.active) tr.className = 'inactive';
     const link = boardBase + '?cohort=' + encodeURIComponent(c.slug);
@@ -316,6 +390,8 @@ async function loadCohorts(){
       <td><strong>${escapeHtml(c.name)}</strong><br><span class="cohort-link">${escapeHtml(c.slug)}</span></td>
       <td>${escapeHtml(c.tool_name || '—')}</td>
       <td><span class="pill ${c.active?'on':'off'}">${c.active?'Active':'Inactive'}</span></td>
+      <td>${s.participants}</td>
+      <td>${formatRelative(s.lastActivity)}</td>
       <td><span class="cohort-link">${escapeHtml(link)}</span><br><button class="link-btn" data-copy="${escapeHtml(link)}">Copy link</button></td>
       <td><button class="link-btn" data-edit="${c.id}">Edit</button><button class="link-btn" data-export="${c.id}" data-export-name="${escapeHtml(c.slug)}">Export CSV</button></td>
     `;
