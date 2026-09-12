@@ -485,13 +485,14 @@
 </header>
 
 <div class="banner-note">
-  Your answers save automatically in this browser as you type. Before you close a session — or if you'll be on a different device next time — click <strong>Save my worksheet</strong> to download a copy you own. Next session, click <strong>Load worksheet</strong> to bring your answers back in.
+  Your answers save automatically in this browser as you type, and are shared with your program facilitator for coaching and program insights. Before you close a session — or if you'll be on a different device next time — click <strong>Save my worksheet</strong> to download a copy you own. Next session, click <strong>Load worksheet</strong> to bring your answers back in.
 </div>
 
 <main id="app"></main>
 
 <footer class="stepper" id="stepper"></footer>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 const HIVE_PROMPT = `I want to use voice mode to help you understand my work so you can become a better strategic partner to me.
 
@@ -1111,7 +1112,143 @@ function showToast(msg){
   setTimeout(()=>t.classList.remove('show'), 2200);
 }
 
-init();
+// ---------- Supabase sync (cohort content + background data capture) ----------
+const SUPABASE_URL = 'https://lzofdkcqnlolnoovypan.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_lE0vngOWxpFIwU24d1lGEQ_sKRhYxXQ';
+let sb = null;
+try{
+  if(window.supabase && window.supabase.createClient){
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+}catch(e){ sb = null; }
+
+let currentCohort = null;
+let currentParticipantId = null;
+
+function getClientId(){
+  try{
+    let id = localStorage.getItem('bb_client_id');
+    if(!id){
+      id = (crypto.randomUUID ? crypto.randomUUID() : ('c-'+Date.now()+'-'+Math.random().toString(16).slice(2)));
+      localStorage.setItem('bb_client_id', id);
+    }
+    return id;
+  }catch(e){
+    return 'c-'+Date.now()+'-'+Math.random().toString(16).slice(2);
+  }
+}
+
+function getCohortSlug(){
+  try{
+    return (new URLSearchParams(window.location.search).get('cohort')||'').trim();
+  }catch(e){ return ''; }
+}
+
+function withTimeout(promise, ms){
+  return Promise.race([
+    promise,
+    new Promise((_,reject)=>setTimeout(()=>reject(new Error('timeout')), ms))
+  ]);
+}
+
+async function fetchCohort(slug){
+  if(!sb || !slug) return null;
+  try{
+    const { data, error } = await withTimeout(
+      sb.from('cohorts').select('*').eq('slug', slug).eq('active', true).maybeSingle(),
+      2500
+    );
+    if(error || !data) return null;
+    return data;
+  }catch(e){ return null; }
+}
+
+// Session 2's primary activity card is the one cohorts customize (e.g. "My Morning Brief"
+// for a Claude cohort vs. an information-gathering tool for a Copilot cohort).
+function applyCohortOverrides(cohort){
+  if(!cohort) return;
+  const s2 = SESSIONS.find(s=>s.id==='s2');
+  if(!s2) return;
+  const card = s2.blocks.find(b=>b.type==='card' && b.fields && b.fields.some(f=>f.key==='s2.brief_capture'));
+  if(!card) return;
+  if(cohort.session2_title) card.title = cohort.session2_title;
+  if(cohort.session2_desc) card.desc = cohort.session2_desc;
+  if(cohort.session2_capture_label){
+    const captureField = card.fields.find(f=>f.key==='s2.brief_capture');
+    if(captureField) captureField.label = cohort.session2_capture_label;
+  }
+}
+
+function showCohortBadge(cohort){
+  if(!cohort) return;
+  const sub = document.querySelector('header.top p.sub');
+  if(!sub) return;
+  const bits = [sub.textContent];
+  if(cohort.name) bits.push(cohort.name);
+  if(cohort.tool_name) bits.push('Tool: '+cohort.tool_name);
+  sub.textContent = bits.join(' · ');
+}
+
+let syncTimer = null;
+function queueSupabaseSync(){
+  if(!sb || !currentCohort) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(syncToSupabase, 800);
+}
+
+async function syncToSupabase(){
+  if(!sb || !currentCohort) return;
+  try{
+    const clientId = getClientId();
+    const state = collectState();
+    const name = state.name || null;
+    const nowIso = new Date().toISOString();
+
+    const { data: participantRow, error: pErr } = await sb
+      .from('participants')
+      .upsert(
+        { cohort_id: currentCohort.id, client_id: clientId, name, last_seen_at: nowIso },
+        { onConflict: 'cohort_id,client_id' }
+      )
+      .select()
+      .single();
+    if(pErr || !participantRow) return;
+    currentParticipantId = participantRow.id;
+
+    await sb
+      .from('responses')
+      .upsert(
+        { participant_id: currentParticipantId, cohort_id: currentCohort.id, state, updated_at: nowIso },
+        { onConflict: 'participant_id' }
+      );
+  }catch(e){
+    // Best-effort only — a facilitator-side sync issue should never block
+    // or interrupt the participant's own local save/download workflow.
+  }
+}
+
+// Wrap the local-save path so every local autosave also queues a background sync to
+// Supabase (when a cohort is active), without changing any participant-facing behavior.
+const _origSaveToLocal = saveToLocal;
+saveToLocal = function(){
+  _origSaveToLocal();
+  queueSupabaseSync();
+};
+
+async function bootstrap(){
+  const slug = getCohortSlug();
+  if(slug){
+    currentCohort = await fetchCohort(slug);
+  }
+  applyCohortOverrides(currentCohort);
+  init();
+  if(currentCohort){
+    showCohortBadge(currentCohort);
+    queueSupabaseSync();
+  }
+}
+
+bootstrap();
 </script>
 </body>
 </html>
