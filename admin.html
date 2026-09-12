@@ -122,6 +122,15 @@
   </div>
   <main>
 
+    <div class="card" style="max-width:380px;">
+      <h2>Set / change your password</h2>
+      <p class="desc">First time here after an invite? Set a password so you can sign in directly next time.</p>
+      <label for="newPassword">New password</label>
+      <input type="password" id="newPassword" autocomplete="new-password">
+      <button class="btn" id="setPasswordBtn" type="button">Set password</button>
+      <div class="msg" id="passwordMsg" hidden></div>
+    </div>
+
     <div class="card">
       <h2 id="formTitle">New cohort</h2>
       <p class="desc">Each cohort gets its own link: add <code>?cohort=slug</code> to the board's URL. Session 2's activity can be customized per cohort — leave fields blank to use the default "My Morning Brief" activity.</p>
@@ -220,6 +229,16 @@ document.getElementById('loginBtn').addEventListener('click', async ()=>{
 document.getElementById('logoutBtn').addEventListener('click', async ()=>{
   await sb.auth.signOut();
   checkSession();
+});
+
+document.getElementById('setPasswordBtn').addEventListener('click', async ()=>{
+  const msg = document.getElementById('passwordMsg');
+  const password = document.getElementById('newPassword').value;
+  if(!password || password.length < 8){ setMsg(msg, 'Use at least 8 characters.', false); return; }
+  const { error } = await sb.auth.updateUser({ password });
+  if(error){ setMsg(msg, error.message, false); return; }
+  document.getElementById('newPassword').value = '';
+  setMsg(msg, 'Password set. You can use it to sign in next time.', true);
 });
 
 function clearForm(){
