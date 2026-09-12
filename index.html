@@ -1123,14 +1123,17 @@ try{
 }catch(e){ sb = null; }
 
 let currentCohort = null;
-let currentParticipantId = null;
 
-function getClientId(){
+// One stable id per browser *per cohort*, so the same device visiting two different
+// cohorts (or the same cohort twice) always upserts the same participant/response rows,
+// without ever needing to read a row back (the anon key can write but not read others' data).
+function getParticipantId(cohortSlug){
+  const storageKey = 'bb_participant_id__'+cohortSlug;
   try{
-    let id = localStorage.getItem('bb_client_id');
+    let id = localStorage.getItem(storageKey);
     if(!id){
       id = (crypto.randomUUID ? crypto.randomUUID() : ('c-'+Date.now()+'-'+Math.random().toString(16).slice(2)));
-      localStorage.setItem('bb_client_id', id);
+      localStorage.setItem(storageKey, id);
     }
     return id;
   }catch(e){
@@ -1199,28 +1202,21 @@ function queueSupabaseSync(){
 async function syncToSupabase(){
   if(!sb || !currentCohort) return;
   try{
-    const clientId = getClientId();
+    const participantId = getParticipantId(currentCohort.slug);
     const state = collectState();
     const name = state.name || null;
     const nowIso = new Date().toISOString();
 
-    const { data: participantRow, error: pErr } = await sb
-      .from('participants')
-      .upsert(
-        { cohort_id: currentCohort.id, client_id: clientId, name, last_seen_at: nowIso },
-        { onConflict: 'cohort_id,client_id' }
-      )
-      .select()
-      .single();
-    if(pErr || !participantRow) return;
-    currentParticipantId = participantRow.id;
-
-    await sb
-      .from('responses')
-      .upsert(
-        { participant_id: currentParticipantId, cohort_id: currentCohort.id, state, updated_at: nowIso },
-        { onConflict: 'participant_id' }
-      );
+    // Fire-and-forget upserts, no read-back required (the anon key can write its own
+    // rows but cannot read participant/response data — only signed-in facilitators can).
+    await sb.from('participants').upsert(
+      { id: participantId, cohort_id: currentCohort.id, client_id: participantId, name, last_seen_at: nowIso },
+      { onConflict: 'id' }
+    );
+    await sb.from('responses').upsert(
+      { participant_id: participantId, cohort_id: currentCohort.id, state, updated_at: nowIso },
+      { onConflict: 'participant_id' }
+    );
   }catch(e){
     // Best-effort only — a facilitator-side sync issue should never block
     // or interrupt the participant's own local save/download workflow.
