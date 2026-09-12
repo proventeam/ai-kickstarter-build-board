@@ -1199,6 +1199,22 @@ function queueSupabaseSync(){
   syncTimer = setTimeout(syncToSupabase, 800);
 }
 
+// Postgres requires SELECT-policy visibility to run the ON CONFLICT arbiter scan,
+// even for ON CONFLICT DO NOTHING with no actual conflicting row present. Since
+// participants/responses are intentionally readable only by signed-in facilitators,
+// an anonymous upsert() with onConflict always fails RLS (42501) — regardless of
+// RETURNING/Prefer settings. So we never use onConflict: the first sync for a given
+// participant does a plain INSERT (covered by the INSERT policy's WITH CHECK only);
+// every sync after that does a plain UPDATE by id (covered by the UPDATE policy's
+// USING/WITH CHECK only). Neither path needs SELECT visibility into the table.
+function getRowCreatedFlag(cohortSlug){
+  try{ return localStorage.getItem('bb_row_created__'+cohortSlug) === '1'; }
+  catch(e){ return false; }
+}
+function setRowCreatedFlag(cohortSlug){
+  try{ localStorage.setItem('bb_row_created__'+cohortSlug, '1'); }catch(e){}
+}
+
 async function syncToSupabase(){
   if(!sb || !currentCohort) return;
   try{
@@ -1206,17 +1222,34 @@ async function syncToSupabase(){
     const state = collectState();
     const name = state.name || null;
     const nowIso = new Date().toISOString();
+    const alreadyCreated = getRowCreatedFlag(currentCohort.slug);
 
-    // Fire-and-forget upserts, no read-back required (the anon key can write its own
-    // rows but cannot read participant/response data — only signed-in facilitators can).
-    await sb.from('participants').upsert(
-      { id: participantId, cohort_id: currentCohort.id, client_id: participantId, name, last_seen_at: nowIso },
-      { onConflict: 'id' }
-    );
-    await sb.from('responses').upsert(
-      { participant_id: participantId, cohort_id: currentCohort.id, state, updated_at: nowIso },
-      { onConflict: 'participant_id' }
-    );
+    if(!alreadyCreated){
+      const { error: pErr } = await sb.from('participants').insert(
+        { id: participantId, cohort_id: currentCohort.id, client_id: participantId, name, last_seen_at: nowIso }
+      );
+      // 23505 = unique_violation: the row already exists (e.g. flag was lost) —
+      // fall through to the update path below instead of treating this as fatal.
+      if(!pErr || pErr.code === '23505'){
+        const { error: rErr } = await sb.from('responses').insert(
+          { participant_id: participantId, cohort_id: currentCohort.id, state, updated_at: nowIso }
+        );
+        if(!rErr || rErr.code === '23505'){
+          setRowCreatedFlag(currentCohort.slug);
+          if(!pErr && !rErr) return;
+        }
+      }
+    }
+
+    // Steady-state path (and fallback if insert hit a duplicate): blind update by id,
+    // which only needs the UPDATE policy — no SELECT visibility required.
+    await sb.from('participants')
+      .update({ name, last_seen_at: nowIso })
+      .eq('id', participantId);
+    await sb.from('responses')
+      .update({ state, updated_at: nowIso })
+      .eq('participant_id', participantId);
+    setRowCreatedFlag(currentCohort.slug);
   }catch(e){
     // Best-effort only — a facilitator-side sync issue should never block
     // or interrupt the participant's own local save/download workflow.
