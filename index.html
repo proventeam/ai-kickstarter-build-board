@@ -595,12 +595,12 @@ const SESSIONS = [
 {
   id:'s2', num:2, label:'My morning brief', kicker:'Session 2 · My Morning Brief',
   blocks:[
-    {type:'card', meta:'S2 · ACTIVITY · CHAT THEN BOARD · 10 MIN', title:'My Morning Brief', desc:'My two-way conversation that I have with my AI in the morning.',
+    {type:'card', key:'s2_brief', meta:'S2 · ACTIVITY · CHAT THEN BOARD · 10 MIN', title:'My Morning Brief', desc:'My two-way conversation that I have with my AI in the morning.',
       fields:[
         {type:'textarea', key:'s2.brief_capture', label:'Capture your morning brief conversation'},
         {type:'choice', key:'s2.brief_delivery', label:'Where My Brief Shows Up — how do I want my Morning Brief delivered each day?', options:['Teams message','Phone','HTML file on desktop','Email','Other']}
       ]},
-    {type:'card', meta:'S2 · ACTIVITY · SOLO · 5 MIN', title:'What I Need My Morning Brief To Do For Me', desc:'Activity: define what a great morning brief looks like for you.',
+    {type:'card', key:'s2_brief_needs', meta:'S2 · ACTIVITY · SOLO · 5 MIN', title:'What I Need My Morning Brief To Do For Me', desc:'Activity: define what a great morning brief looks like for you.',
       fields:[{type:'textarea', key:'s2.brief_needs'}]},
     {type:'card', meta:'S2 · ACTIVITY · SOLO · 5 MIN', title:'What Broke + What I Learned', desc:'Every win equals a screw-up. What snagged today, and what did it teach me?',
       fields:[{type:'pairlist', key:'s2.broke_learned', tagA:'WHAT BROKE', tagB:'WHAT I LEARNED', colorA:'coral', colorB:'teal', placeholderA:'The snag I hit...', placeholderB:'What it taught me...', initial:1}]},
@@ -619,7 +619,7 @@ const SESSIONS = [
       {key:'s1.opportunity', label:'My Biggest Opportunity'},
       {key:'s1.hive_task', label:'My #1 task to hand off'}
     ]},
-    {type:'card', meta:'S3 · CHECK-IN · SOLO · 4 MIN', title:'Morning Brief Check-In', desc:'How much time or effort can you estimate that it’s saving you now?',
+    {type:'card', key:'s3_brief_checkin', meta:'S3 · CHECK-IN · SOLO · 4 MIN', title:'Morning Brief Check-In', desc:'How much time or effort can you estimate that it’s saving you now?',
       fields:[
         {type:'textarea', key:'s3.brief_savings', label:'How much time or effort is your morning brief saving you now?'},
         {type:'textarea', key:'s3.brief_built_more', label:'Have you built anything else since then?'}
@@ -1182,6 +1182,30 @@ function applyCohortOverrides(cohort){
   }
 }
 
+// Generic per-cohort label overrides, driven by the `labels` JSONB column on `cohorts`.
+// Keys: session.<sessionId>.label, session.<sessionId>.kicker,
+//       card.<cardKey>.title, card.<cardKey>.desc, field.<fieldKey>.label
+// Any key absent from `labels` keeps the default wording defined in SESSIONS above, so a
+// cohort that sets nothing -- or only some keys -- renders exactly as it does today.
+function applyLabelOverrides(labels){
+  if(!labels || typeof labels !== 'object') return;
+  const pick = k => (typeof labels[k] === 'string' && labels[k].trim()) ? labels[k] : null;
+  SESSIONS.forEach(s=>{
+    const sl = pick('session.'+s.id+'.label');  if(sl) s.label  = sl;
+    const sk = pick('session.'+s.id+'.kicker'); if(sk) s.kicker = sk;
+    (s.blocks||[]).forEach(b=>{
+      if(b.key){
+        const bt = pick('card.'+b.key+'.title'); if(bt) b.title = bt;
+        const bd = pick('card.'+b.key+'.desc');  if(bd) b.desc  = bd;
+      }
+      (b.fields||[]).forEach(f=>{
+        if(!f.key) return;
+        const fl = pick('field.'+f.key+'.label'); if(fl) f.label = fl;
+      });
+    });
+  });
+}
+
 function showCohortBadge(cohort){
   if(!cohort) return;
   const sub = document.querySelector('header.top p.sub');
@@ -1270,6 +1294,7 @@ async function bootstrap(){
     currentCohort = await fetchCohort(slug);
   }
   applyCohortOverrides(currentCohort);
+  applyLabelOverrides(currentCohort && currentCohort.labels);
   init();
   if(currentCohort){
     showCohortBadge(currentCohort);
