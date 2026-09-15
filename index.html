@@ -1232,11 +1232,11 @@ function queueSupabaseSync(){
 // every sync after that does a plain UPDATE by id (covered by the UPDATE policy's
 // USING/WITH CHECK only). Neither path needs SELECT visibility into the table.
 function getRowCreatedFlag(cohortSlug){
-  try{ return localStorage.getItem('bb_row_created__'+cohortSlug) === '1'; }
+  try{ return localStorage.getItem('bb_row_created_v2__'+cohortSlug) === '1'; }
   catch(e){ return false; }
 }
 function setRowCreatedFlag(cohortSlug){
-  try{ localStorage.setItem('bb_row_created__'+cohortSlug, '1'); }catch(e){}
+  try{ localStorage.setItem('bb_row_created_v2__'+cohortSlug, '1'); }catch(e){}
 }
 
 // True once the participant has typed a name or anything into any field.
