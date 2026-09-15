@@ -436,6 +436,39 @@
     color:#fff;
     border-color:var(--coral);
   }
+  .board-link{
+    margin-top:12px;
+    padding:12px 14px;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:10px;
+    box-shadow:var(--shadow);
+  }
+  .board-link[hidden]{display:none;}
+  .board-link p{
+    margin:0 0 10px;
+    font-size:0.85rem;
+    line-height:1.5;
+    color:var(--navy-soft);
+  }
+  .board-link p strong{color:var(--navy);}
+  .board-link-row{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    align-items:center;
+  }
+  .board-link-row input{
+    flex:1 1 240px;
+    min-width:0;
+    padding:8px 10px;
+    border-radius:9px;
+    border:1px solid var(--line);
+    font-size:0.8rem;
+    color:var(--navy);
+    background:var(--bg);
+  }
+  .board-link-row .tool-btn{text-decoration:none;display:inline-block;}
   .save-toast{
     position:fixed;
     top:60px;right:12px;
@@ -481,11 +514,20 @@
   <div class="name-row">
     <label for="participantName">Your name:</label>
     <input type="text" id="participantName" placeholder="e.g. Jordan Lee">
+    <button type="button" class="tool-btn" id="boardLinkBtn" aria-expanded="false" aria-controls="boardLink" hidden>My board link</button>
+  </div>
+  <div class="board-link" id="boardLink" hidden>
+    <p><strong>Your personal board link.</strong> Open it on any device to pick up right where you left off. Keep it to yourself: anyone with this link can see and change your answers.</p>
+    <div class="board-link-row">
+      <input type="text" id="boardLinkInput" readonly aria-label="Your personal board link">
+      <button type="button" class="tool-btn primary" id="boardLinkCopy">Copy link</button>
+      <a class="tool-btn" id="boardLinkEmail" href="#">Email it to myself</a>
+    </div>
   </div>
 </header>
 
 <div class="banner-note">
-  Your answers save automatically in this browser as you type, and are shared with your program facilitator for coaching and program insights. Before you close a session — or if you'll be on a different device next time — click <strong>Save my worksheet</strong> to download a copy you own. Next session, click <strong>Load worksheet</strong> to bring your answers back in.
+  Your answers save automatically in this browser as you type, and are shared with your program facilitator for coaching and program insights. <span id="boardLinkTip" hidden>Using a different device next time? Once you've typed your name, click <strong>My board link</strong> beside it and email the link to yourself. </span>You can also click <strong>Save my worksheet</strong> to download a copy you own, and <strong>Load worksheet</strong> to bring it back in.
 </div>
 
 <main id="app"></main>
@@ -1105,11 +1147,11 @@ function handleFileLoad(e){
   e.target.value='';
 }
 
-function showToast(msg){
+function showToast(msg, ms){
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), 2200);
+  setTimeout(()=>t.classList.remove('show'), ms || 2200);
 }
 
 // ---------- Supabase sync (cohort content + background data capture) ----------
@@ -1237,6 +1279,7 @@ function getRowCreatedFlag(cohortSlug){
 }
 function setRowCreatedFlag(cohortSlug){
   try{ localStorage.setItem('bb_row_created_v2__'+cohortSlug, '1'); }catch(e){}
+  refreshBoardLink();
 }
 
 // True once the participant has typed a name or anything into any field.
@@ -1304,17 +1347,117 @@ saveToLocal = function(){
   queueSupabaseSync();
 };
 
+// ---------- Personal board link (resume on any device) ----------
+// Link format: /?cohort=<slug>&resume=<participant id>. The participant id is a random
+// UUID, so the link works like a private key to one board. Participants still can't read
+// the tables directly; the get_my_board() database function returns only the one board
+// whose cohort + id both match.
+function getBoardLinkUrl(){
+  if(!currentCohort) return '';
+  const u = new URL(window.location.origin + window.location.pathname);
+  u.searchParams.set('cohort', currentCohort.slug);
+  u.searchParams.set('resume', getParticipantId(currentCohort.slug));
+  return u.toString();
+}
+
+function refreshBoardLink(){
+  const btn = document.getElementById('boardLinkBtn');
+  const panel = document.getElementById('boardLink');
+  const tip = document.getElementById('boardLinkTip');
+  if(!btn || !panel) return;
+  if(tip) tip.hidden = !currentCohort;
+  const show = !!(currentCohort && getRowCreatedFlag(currentCohort.slug));
+  btn.hidden = !show;
+  if(!show){
+    panel.hidden = true;
+    btn.setAttribute('aria-expanded', 'false');
+  }
+}
+
+function setupBoardLink(){
+  const btn = document.getElementById('boardLinkBtn');
+  const panel = document.getElementById('boardLink');
+  const input = document.getElementById('boardLinkInput');
+  const email = document.getElementById('boardLinkEmail');
+  const copy = document.getElementById('boardLinkCopy');
+  if(!btn || !panel || !input || !email || !copy) return;
+  btn.addEventListener('click', ()=>{
+    const url = getBoardLinkUrl();
+    if(!url) return;
+    input.value = url;
+    const subject = 'My AI Kickstarter Build Board link';
+    const body = 'Open this link on any device to pick up my Build Board where I left off:\n\n' + url;
+    email.href = 'mailto:?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+    panel.hidden = !panel.hidden;
+    btn.setAttribute('aria-expanded', panel.hidden ? 'false' : 'true');
+  });
+  copy.addEventListener('click', ()=>{ if(input.value) copyText(input.value, copy); });
+  input.addEventListener('focus', ()=>input.select());
+}
+
+function getResumeParam(){
+  try{
+    return (new URLSearchParams(window.location.search).get('resume')||'').trim();
+  }catch(e){ return ''; }
+}
+
+// Remove ?resume= from the address bar once it has been used, so a later refresh never
+// re-loads the saved copy over newer typing, and the private id isn't left on screen.
+function stripResumeParam(){
+  try{
+    const u = new URL(window.location.href);
+    u.searchParams.delete('resume');
+    history.replaceState(null, '', u.toString());
+  }catch(e){}
+}
+
+// Runs before init() so loadFromLocal() renders the resumed answers.
+// Returns 'ok', 'notfound' or 'error'.
+async function resumeFromLink(resumeId){
+  if(!sb || !currentCohort || !resumeId) return 'error';
+  try{
+    const { data, error } = await withTimeout(
+      sb.rpc('get_my_board', { p_cohort_slug: currentCohort.slug, p_participant_id: resumeId }),
+      5000
+    );
+    if(error) return 'error';
+    if(!data) return 'notfound';
+    const state = (data.state && typeof data.state === 'object')
+      ? data.state
+      : { name: data.name || '', fields: {} };
+    if(!state.name && data.name) state.name = data.name;
+    if(!state.fields || typeof state.fields !== 'object') state.fields = {};
+    localStorage.setItem('bb_participant_id__'+currentCohort.slug, resumeId);
+    localStorage.setItem('bb_state', JSON.stringify(state));
+    setRowCreatedFlag(currentCohort.slug);
+    return 'ok';
+  }catch(e){ return 'error'; }
+}
+
 async function bootstrap(){
   const slug = getCohortSlug();
   if(slug){
     currentCohort = await fetchCohort(slug);
   }
+  const resumeId = getResumeParam();
+  let resumeResult = null;
+  if(resumeId){
+    resumeResult = currentCohort ? await resumeFromLink(resumeId) : 'error';
+    stripResumeParam();
+  }
   applyCohortOverrides(currentCohort);
   applyLabelOverrides(currentCohort && currentCohort.labels);
   init();
+  setupBoardLink();
+  refreshBoardLink();
   if(currentCohort){
     showCohortBadge(currentCohort);
     queueSupabaseSync();
+  }
+  if(resumeResult === 'ok'){
+    showToast('Welcome back! Your board is loaded.', 3500);
+  } else if(resumeId){
+    showToast("We couldn't open that board link. Check that you copied the whole link.", 6000);
   }
 }
 
