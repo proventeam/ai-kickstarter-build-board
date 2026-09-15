@@ -1239,6 +1239,19 @@ function setRowCreatedFlag(cohortSlug){
   try{ localStorage.setItem('bb_row_created__'+cohortSlug, '1'); }catch(e){}
 }
 
+// True once the participant has typed a name or anything into any field.
+// Empty lists/pairs ([""], [["",""]]) don't count.
+function stateHasContent(state){
+  if(state.name && String(state.name).trim()) return true;
+  const hasText = v => {
+    if(v == null) return false;
+    if(Array.isArray(v)) return v.some(hasText);
+    if(typeof v === 'object') return Object.values(v).some(hasText);
+    return String(v).trim() !== '';
+  };
+  return Object.values(state.fields || {}).some(hasText);
+}
+
 async function syncToSupabase(){
   if(!sb || !currentCohort) return;
   try{
@@ -1247,6 +1260,9 @@ async function syncToSupabase(){
     const name = state.name || null;
     const nowIso = new Date().toISOString();
     const alreadyCreated = getRowCreatedFlag(currentCohort.slug);
+
+    // Don't create a participant just for opening the page — wait until they enter something.
+    if(!alreadyCreated && !stateHasContent(state)) return;
 
     if(!alreadyCreated){
       const { error: pErr } = await sb.from('participants').insert(
