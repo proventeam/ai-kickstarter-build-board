@@ -93,6 +93,14 @@
   .stat{flex:1 1 130px;background:var(--bg);border:1px solid var(--line);border-radius:11px;padding:14px 16px;}
   .stat-num{font-size:1.6rem;font-weight:700;color:var(--navy);line-height:1.1;}
   .stat-label{font-size:0.74rem;color:var(--navy-soft);margin-top:4px;}
+  .link-btn.danger{color:#A12A1A;}
+  .modal-backdrop{position:fixed;inset:0;background:rgba(28,43,58,0.45);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50;}
+  .modal{background:var(--card);border-radius:var(--radius);box-shadow:0 10px 40px rgba(28,43,58,0.25);max-width:440px;width:100%;padding:22px 24px;}
+  .modal h2{margin:0 0 8px;font-size:1.1rem;}
+  .modal p{margin:0 0 10px;font-size:0.88rem;line-height:1.45;}
+  .modal code{background:var(--coral-soft);color:var(--coral-text);padding:1px 6px;border-radius:5px;}
+  .modal-actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;}
+  .btn.danger{background:#A12A1A;}
 </style>
 </head>
 <body>
@@ -197,6 +205,21 @@
     </div>
 
   </main>
+</div>
+
+<div class="modal-backdrop" id="deleteModal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="deleteTitle">
+    <h2 id="deleteTitle">Delete cohort?</h2>
+    <p id="deleteSummary"></p>
+    <p>This can't be undone. Export the CSV first if you want to keep the answers.</p>
+    <label for="deleteConfirmInput">Type <code id="deleteSlugHint"></code> to confirm</label>
+    <input type="text" id="deleteConfirmInput" autocomplete="off" spellcheck="false">
+    <div class="msg" id="deleteMsg" hidden></div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="deleteCancelBtn" type="button">Cancel</button>
+      <button class="btn danger" id="deleteConfirmBtn" type="button" disabled>Delete permanently</button>
+    </div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -393,7 +416,7 @@ async function loadCohorts(){
       <td>${s.participants}</td>
       <td>${formatRelative(s.lastActivity)}</td>
       <td><span class="cohort-link">${escapeHtml(link)}</span><br><button class="link-btn" data-copy="${escapeHtml(link)}">Copy link</button></td>
-      <td><button class="link-btn" data-edit="${c.id}">Edit</button><button class="link-btn" data-export="${c.id}" data-export-name="${escapeHtml(c.slug)}">Export CSV</button></td>
+      <td><button class="link-btn" data-edit="${c.id}">Edit</button><button class="link-btn" data-export="${c.id}" data-export-name="${escapeHtml(c.slug)}">Export CSV</button><br><button class="link-btn danger" data-delete="${c.id}">Delete</button></td>
     `;
     tbody.appendChild(tr);
   }
@@ -412,7 +435,64 @@ async function loadCohorts(){
   tbody.querySelectorAll('[data-export]').forEach(btn=>{
     btn.addEventListener('click', ()=>exportCohort(btn.dataset.export, btn.dataset.exportName));
   });
+  tbody.querySelectorAll('[data-delete]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const c = cohorts.find(x=>x.id===btn.dataset.delete);
+      if(c) openDeleteModal(c, stats.byCohort[c.id] || { participants:0, responses:0 });
+    });
+  });
 }
+
+// ---- Delete cohort ----
+const deleteModal = document.getElementById('deleteModal');
+const deleteInput = document.getElementById('deleteConfirmInput');
+const deleteConfirmBtn = document.getElementById('deleteConfirmBtn');
+const deleteMsg = document.getElementById('deleteMsg');
+let pendingDelete = null;
+
+function openDeleteModal(c, s){
+  pendingDelete = c;
+  document.getElementById('deleteTitle').textContent = 'Delete "' + (c.name || c.slug) + '"?';
+  document.getElementById('deleteSummary').textContent =
+    'This permanently deletes the cohort ' + c.slug + ' along with its ' +
+    s.participants + ' participant(s) and ' + s.responses + ' saved worksheet(s). Its link will stop working.';
+  document.getElementById('deleteSlugHint').textContent = c.slug;
+  deleteInput.value = '';
+  deleteConfirmBtn.disabled = true;
+  deleteMsg.hidden = true;
+  deleteModal.hidden = false;
+  deleteInput.focus();
+}
+function closeDeleteModal(){
+  deleteModal.hidden = true;
+  pendingDelete = null;
+}
+deleteInput.addEventListener('input', ()=>{
+  deleteConfirmBtn.disabled = !pendingDelete || deleteInput.value.trim() !== pendingDelete.slug;
+});
+deleteInput.addEventListener('keydown', e=>{ if(e.key==='Enter' && !deleteConfirmBtn.disabled) deleteConfirmBtn.click(); });
+document.getElementById('deleteCancelBtn').addEventListener('click', closeDeleteModal);
+deleteModal.addEventListener('click', e=>{ if(e.target===deleteModal) closeDeleteModal(); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape' && !deleteModal.hidden) closeDeleteModal(); });
+
+deleteConfirmBtn.addEventListener('click', async ()=>{
+  const c = pendingDelete;
+  if(!c || deleteInput.value.trim() !== c.slug) return;
+  deleteConfirmBtn.disabled = true;
+  deleteConfirmBtn.textContent = 'Deleting…';
+  // .select() returns the deleted rows, so a silent "0 rows" (e.g. signed out) is caught.
+  const { data, error } = await sb.from('cohorts').delete().eq('id', c.id).select('id');
+  deleteConfirmBtn.textContent = 'Delete permanently';
+  if(error || !data || !data.length){
+    setMsg(deleteMsg, error ? error.message : 'Nothing was deleted. Try signing out and back in.', false);
+    deleteConfirmBtn.disabled = false;
+    return;
+  }
+  if(document.getElementById('cohortId').value === c.id) clearForm();
+  closeDeleteModal();
+  await loadCohorts();
+  setMsg(document.getElementById('listMsg'), 'Deleted ' + c.slug + '.', true);
+});
 
 function escapeHtml(s){
   return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
